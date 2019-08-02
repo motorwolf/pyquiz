@@ -9,31 +9,33 @@ def digest_quiz(file):
     quizzes[current_quiz] = list()
     for line in open(file):
         line = line.rstrip()
+        if not line:
+            continue
         if line == "END":
+            if len(current_question['answer']) > 1:
+                current_question['choice'] = True
             quizzes[current_quiz].append(current_question)
             break
         if line[0] == '=':
             current_quiz = line[1:]
             quizzes[current_quiz] = list()
-        if not line:
-            continue
         if line[0] not in answer_tokens:
             if current_question:
-                if len(current_question['answer']) < 1:
+                if len(current_question['answer']) > 1:
                     current_question['choice'] = True
                 quizzes[current_quiz].append(current_question)
             current_question = {
                 'question': line,
                 'choice': False,
-                'answer': '',
+                'answer': [],
             }
             question_counter += 1
             continue
         else:
             if line[0] == '-':
-                current_question['answer'] = (line[1:], False)
+                current_question['answer'].append((line[1:], False))
             if line[0] == '+':
-                current_question['answer'] = (line[1:], True)
+                current_question['answer'].append((line[1:], True))
     return quizzes
 
 
