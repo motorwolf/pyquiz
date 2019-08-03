@@ -1,4 +1,5 @@
 import shelve
+import time
 
 master_quiz = shelve.open('quiz')
 
@@ -48,7 +49,9 @@ def run_quiz():
     for index,quiz in enumerate(master_quiz.keys(),1):
         name_dict[index] = quiz
         print(f'{index}. {quiz}')
-    selected_quiz = input('Which quiz do you want to run?')
+    print(name_dict)
+    selected_quiz = int(input('Which quiz do you want to run?'))
+    print(selected_quiz)
     selected_quiz = name_dict.get(selected_quiz,None)
     if not selected_quiz:
         print("Something went wrong. Try again.")
@@ -56,7 +59,7 @@ def run_quiz():
 
 def ask_questions(quiz):
     for question in master_quiz[quiz]:
-        if question['choices']:
+        if question['choice']:
             handle_multiple_choice(question)
         else:
             handle_flashcard(question)
@@ -65,22 +68,34 @@ def handle_multiple_choice(q):
     answer_dict = {}
     print(q['question'])
     #TODO: randomize the answer output
-    for answer,index in enumerate(q['answer'],1):
+    winning_answer = ''
+    for index,answer in enumerate(q['answer'],1):
         answer_dict[index] = answer
-        print(answer[0])
+        if answer[1]:
+            winning_answer = index
+        print(f'    {index}. {answer[0]}')
     your_answer = 0
     while not your_answer:
         your_answer = int(input('What is your choice?'))
-        if your_answer >= len(q['answer']) or your_answer < 0:
+        if your_answer > len(q['answer']) or your_answer < 0:
             print("That is not a valid choice")
             your_answer = 0
+    if winning_answer == your_answer:
+        print("======CORRECT")
+    else:
+        print("======OOPS")
 
 def handle_flashcard(q):
     print(q['question'])
-    print('Press return to reveal answer.')
-    your_input = input('Ready?>>')
-    print(q['answer'])
+    print('==========\nPress return to reveal answer.')
+    your_input = input('>>> ')
+    print(f"    {q['answer'][0][0]}")
+    assess = input('>>> Mark Correct?').lower()
+    if assess == '' or assess == 'y':
+        print("===========CORRECT")
+    else:
+        print("===========OOPS")
     return
-
-print(master_quiz)
-
+thequiz = run_quiz()
+print(thequiz)
+ask_questions(thequiz)
