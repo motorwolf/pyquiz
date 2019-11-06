@@ -1,9 +1,170 @@
-This is a line
-+ Line number 2
+^This is a flash card line
++Flash card answer
 
 Here's a second question?
 -Wrong answer
 -Another wrong
 +Right!
 -Sad, wrong
+
+The stats would be a good addition.
++True
+-False
+
+?The shape of a GraphQL response is determined by the ____ you include.
+-JSON
+-Endpoints
++Fields
+-Queries
+
+?Which of the following is NOT a benefit of using grapQL over REST?
++Faster response times
+-Fetching nested data in a single request
+-Self documenting APIs
+
+?The 'id', 'title' and 'tagline' in the below snippet are known as: 
+#+BEGIN_SRC 
+query {
+  allMovies {
+    id
+    title
+    tagline
+  }
+}
+#+END_SRC
++Fields
+-Types
+-Queries
+
+?Graphql is very similar to JSON in appearance; however, there are some differences. Which of the following JSON components are NOT required in a GraphQL query?
+-Colons
+-Commas
+-Values
++All of the Above
+
+?We can tell GraphQL which properties we want to include or exclude from our response using ___.
+-Endpoints
++Fields
+-JSON
+
+?In a standard query, the keyword `query` is known as the ...
+-Field
+-Endpoint
++Declaration
+
+?In the topMovieByRevenue code snippet, topMovieByRevenue is known as...
++Endpoint
+-Fields
+-Declaration
+
+?Which of the following is not an example of a scalar field?
+-Booleans
+-Strings
+-Numbers
++Objects
+
+?What is specified in the curly braces following the Endpoint name?
+-Declaration
++Fields
+-Query
+
+?A graphQL query begins with the ___.
+-Fields
+-Endpoint
++Declaration
+
+?If you request a field that doesn't exist on a Type, GraphQL will:
++Throw an error
+- Return the entire result, with the missing field set as null
+- Return an empty object
+
+?Which symbol is used to denote that an argument is required?
++Exclamation point
+-Curly braces
+-Colon
+-Parentheses
+
+?GraphQL mutations can return a result, just like Queries.
++True
+-False
+
+?A graphQL mutation begins with the ___.
++Declaration
+-Field
+-Endpoint
+
+?What symbol is used to identify variables inside of a query?
++Dollar sign
+-Parentheses
+-Curly braces
+-Exclamation point
+
+?Which of the following describes the difference between Input Object types and Scalar types?
++Input Object types include their own nested properties
+- Scalar types include their own nested properties
+-Scalar types are required
+-Input Object types are required
+
+?Which language is used to specify query variables?
+-SQL
+-YAML
++JSON
+-XML
+
+?Input Object types can include more nested Input Object types.
++True
+-False
+
+?A(n) __ is the term for what happens when two fields with the same name are requested in the same query.
++Collision
+-Response
+-Declaration
+-Error
+
+?Which graphQL concept is used to solve a name collision?
+-Mutation
+-Scalar
+-Variable
++Alias
+
+?What is the endpoint name here?
+#+BEGIN_SRC 
+query {
+  movieOne: movieById(
+  movieId: "movie_0"
+){
+  id
+  title
+}
+}
+#+END_SRC
++movieById
+-movieOne
+-"movie_0"
+-title
+
+?Alias name?
+-"movie_0"
+-movieById
+-title
++movieOne
+
+?When using aliases, the fields we want to receive in our response should be specified in the __ following the alias name.
+-JSON
+-Square brackets
++ Curly braces
+- Parentheses
+
+?Query variables help make queries more reusable by avoiding __.
+-Arguments
+-Fragments
++Hardcoding
+-Mutations
+
+?____ are particularly useful for selecting the same group of fields in multiple places.
+-Aliases
++Fragments
+-Variables
+-Queries
+.
 END

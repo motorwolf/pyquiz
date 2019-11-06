@@ -14,6 +14,9 @@ def digest_quiz(file):
     for line in open(file):
         line = line.rstrip()
         if not line:
+            if current_question:
+                quizzes[current_quiz].append(current_question)
+                current_question = False
             continue
         if line == "END":
             if len(current_question['answer']) > 1:
@@ -25,18 +28,17 @@ def digest_quiz(file):
             quizzes[current_quiz] = list()
         if line[0] not in answer_tokens:
             if current_question:
-                if len(current_question['answer']) > 1:
-                    current_question['choice'] = True
-                quizzes[current_quiz].append(current_question)
-            current_question = {
-                'question': line,
-                'choice': False,
-                'answer': [],
-            }
-            question_counter += 1
-            continue
+                current_question['question'] += f"\n {line}"
+            else:
+                current_question = {
+                    'question': line,
+                    'choice': False,
+                    'answer': [],
+                }
+                question_counter += 1
         else:
             if line[0] == '-':
+                current_question['choice'] = True
                 current_question['answer'].append((line[1:], False))
             if line[0] == '+':
                 current_question['answer'].append((line[1:], True))
@@ -49,7 +51,6 @@ def run_quiz():
     for index,quiz in enumerate(master_quiz.keys(),1):
         name_dict[index] = quiz
         print(f'{index}. {quiz}')
-    print(name_dict)
     selected_quiz = int(input('Which quiz do you want to run?'))
     print(selected_quiz)
     selected_quiz = name_dict.get(selected_quiz,None)
