@@ -7,7 +7,7 @@ def digest_quiz(file):
     quizzes = {}
     current_question = ''
     current_quiz = 'quiz1'
-    answer_tokens = '+-'
+    answer_tokens = '+-='
     quiz_counter = 1
     question_counter = 1
     quizzes[current_quiz] = list()
@@ -24,6 +24,8 @@ def digest_quiz(file):
             quizzes[current_quiz].append(current_question)
             break
         if line[0] == '=':
+            if current_question:
+                quizzes[current_quiz].append(current_question)
             current_quiz = line[1:]
             quizzes[current_quiz] = list()
         if line[0] not in answer_tokens:
@@ -59,11 +61,22 @@ def run_quiz():
     return selected_quiz
 
 def ask_questions(quiz):
+    questions: {
+            'correct': []
+            'incorrect': []
+            }
+
     for question in master_quiz[quiz]:
         if question['choice']:
-            handle_multiple_choice(question)
+            answer = handle_multiple_choice(question)
         else:
-            handle_flashcard(question)
+            answer = handle_flashcard(question)
+        if answer[0]:
+            questions['correct'].append(answer[1])
+        else:
+            questions['incorrect'].append(answer[1])
+
+    return questions
 
 def handle_multiple_choice(q):
     answer_dict = {}
@@ -83,20 +96,25 @@ def handle_multiple_choice(q):
             your_answer = 0
     if winning_answer == your_answer:
         print("======CORRECT")
+        return (True, question)
     else:
-        print("======OOPS")
+        print("=======OOPS")
+        return (False, question)
 
 def handle_flashcard(q):
     print(q['question'])
-    print('==========\nPress return to reveal answer.')
-    your_input = input('>>> ')
+    print('\n\nPress return to reveal answer.\n')
+    your_input = input('> ')
     print(f"    {q['answer'][0][0]}")
-    assess = input('>>> Mark Correct?').lower()
+    assess = input('> Mark Correct?').lower()
     if assess == '' or assess == 'y':
         print("===========CORRECT")
+        return (True, question)
     else:
         print("===========OOPS")
-    return
+        return (False, question)
+
 thequiz = run_quiz()
 print(thequiz)
 ask_questions(thequiz)
+
