@@ -1,4 +1,6 @@
-^This is a flash card line
+=Sample Quiz
+
+This is a flash card line
 +Flash card answer
 
 Here's a second question?
