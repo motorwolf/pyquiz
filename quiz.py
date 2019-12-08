@@ -49,6 +49,7 @@ def digest_quiz(file):
 master_quiz = digest_quiz("./sample.txt")
 
 def run_quiz():
+
     name_dict = {}
     for index,quiz in enumerate(master_quiz.keys(),1):
         name_dict[index] = quiz
@@ -61,9 +62,9 @@ def run_quiz():
     return selected_quiz
 
 def ask_questions(quiz):
-    questions: {
-            'correct': []
-            'incorrect': []
+    questions = {
+            'correct': [],
+            'incorrect': [],
             }
 
     for question in master_quiz[quiz]:
@@ -90,29 +91,29 @@ def handle_multiple_choice(q):
         print(f'    {index}. {answer[0]}')
     your_answer = 0
     while not your_answer:
-        your_answer = int(input('What is your choice?'))
+        your_answer = int(input('What is your choice? >> '))
         if your_answer > len(q['answer']) or your_answer < 0:
             print("That is not a valid choice")
             your_answer = 0
     if winning_answer == your_answer:
-        print("======CORRECT")
-        return (True, question)
+        print("======CORRECT\n")
+        return (True, q['question'])
     else:
-        print("=======OOPS")
-        return (False, question)
+        print("=======OOPS\n")
+        return (False, q['question'])
 
 def handle_flashcard(q):
     print(q['question'])
     print('\n\nPress return to reveal answer.\n')
-    your_input = input('> ')
+    your_input = input('>> ')
     print(f"    {q['answer'][0][0]}")
-    assess = input('> Mark Correct?').lower()
+    assess = input('Mark Correct? >> ').lower()
     if assess == '' or assess == 'y':
-        print("===========CORRECT")
-        return (True, question)
+        print("===========CORRECT\n")
+        return (True, q['question'])
     else:
-        print("===========OOPS")
-        return (False, question)
+        print("===========OOPS\t")
+        return (False, q['question'])
 
 thequiz = run_quiz()
 print(thequiz)
