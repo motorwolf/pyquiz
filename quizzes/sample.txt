@@ -1,0 +1,23 @@
+=Sample Quiz 1
+
+This is a flash card line
++Flash card answer
+
+Here's a second question?
+-Wrong answer
+-Another wrong
++Right!
+-Sad, wrong
+
+The stats would be a good addition.
++True
+-False
+
+END 
+
+=Sample Quiz 2
+
+This is a flash card question
++ ...and this is the answer!
+
+END
