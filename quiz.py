@@ -1,121 +1,148 @@
 import shelve
-import time
+import time, random
+import urwid
 
-master_quiz = shelve.open('quiz')
+
+# I am not using this yet
+palette = [
+    ('titlebar', 'dark blue', ''),
+    ('header', 'white,bold', ''),
+    ('correct ', 'dark green,bold', ''),
+    ('wrong', 'dark red,bold', ''),
+    ('reversed', 'standout', ''),
+    ]
+
 
 def digest_quiz(file):
+    """ This takes a quiz file and digests it into a quizzable format! A line prefixed by '=' indicates a new quiz. Any line following without a symbol will be treated as a new question, and lines that follow the new question will be treated as multiple choice, with correct answers indicated by + and wrong ones indicated by -. """ 
+    
     quizzes = {}
-    current_question = ''
-    current_quiz = 'quiz1'
+    current_question = False
+    current_quiz = ''
     answer_tokens = '+-='
-    quiz_counter = 1
-    question_counter = 1
-    quizzes[current_quiz] = list()
     for line in open(file):
         line = line.rstrip()
         if not line:
             if current_question:
-                quizzes[current_quiz].append(current_question)
+                quizzes[current_quiz]['questions'].append(current_question)
                 current_question = False
             continue
-        if line == "END":
-            if len(current_question['answer']) > 1:
-                current_question['choice'] = True
-            quizzes[current_quiz].append(current_question)
-            break
         if line[0] == '=':
             if current_question:
                 quizzes[current_quiz].append(current_question)
             current_quiz = line[1:]
-            quizzes[current_quiz] = list()
+            quizzes[current_quiz] = {
+                "questions": [],
+            }
         if line[0] not in answer_tokens:
             if current_question:
-                current_question['question'] += f"\n {line}"
+                # handler for multi-line questions
+                current_question['question_text'] += f"\n {line}"
             else:
                 current_question = {
-                    'question': line,
-                    'choice': False,
-                    'answer': [],
+                    'question_text': line,
+                    'answers': [],
                 }
-                question_counter += 1
         else:
             if line[0] == '-':
-                current_question['choice'] = True
-                current_question['answer'].append((line[1:], False))
+                current_question['answers'].append((False, line[1:]))
             if line[0] == '+':
-                current_question['answer'].append((line[1:], True))
+                current_question['answers'].append((True, line[1:]))
+    
+    if current_question: 
+        quizzes[current_quiz]['questions'].append(current_question)
     return quizzes
 
-master_quiz = digest_quiz("./sample.txt")
 
-def run_quiz():
-
-    name_dict = {}
-    for index,quiz in enumerate(master_quiz.keys(),1):
-        name_dict[index] = quiz
-        print(f'{index}. {quiz}')
-    selected_quiz = int(input('Which quiz do you want to run?'))
-    print(selected_quiz)
-    selected_quiz = name_dict.get(selected_quiz,None)
-    if not selected_quiz:
-        print("Something went wrong. Try again.")
-    return selected_quiz
-
-def ask_questions(quiz):
-    questions = {
+class Quiz:
+    def __init__(self, title, questions):
+        self.question_results = {
             'correct': [],
             'incorrect': [],
             }
+        self.questions = questions[:]
+        self.title = title
+        self.current_screen = urwid.Filler(urwid.Text(self.title))
+        main.original_widget = self.current_screen
+        self.handle_multiple_choice(questions.pop(0))
 
-    for question in master_quiz[quiz]:
-        if question['choice']:
-            answer = handle_multiple_choice(question)
+    def check_answer(self, button, choice, answer, question):
+        # I'm not sure why these args are this way.
+        correct, your_answer = question
+        header_text = "You selected: " + your_answer
+        if correct:
+            result = "CORRECT"
+            self.question_results['correct'] = choice
         else:
-            answer = handle_flashcard(question)
-        if answer[0]:
-            questions['correct'].append(answer[1])
+            result = "WRONG"
+            self.question_results['incorrect'] = choice
+        ok_button = urwid.Button('OK')
+        urwid.connect_signal(ok_button, 'click', self.ask_question)
+        self.current_screen = main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(header_text), urwid.Text(result),
+            urwid.AttrMap(ok_button, None, focus_map='reversed')]))
+        # how can we keep them on this 'page' until we confirm?
+
+    def ask_question(self, button):
+        """ Determines whether there are questions left and if so, asks them, removing them from the unasked questions in turn, and determines whether the question is multiple choice or not """
+        if self.questions:
+            self.handle_multiple_choice(self.questions.pop(0))
         else:
-            questions['incorrect'].append(answer[1])
+            exit_program()
 
-    return questions
+    def handle_multiple_choice(self, q):
+        body = [urwid.Text(q['question_text']), urwid.Divider()]
+        winning_answer = ''
+        random.shuffle(q['answers'])
+        for answer in q['answers']:
+            button = urwid.Button(answer[1])
+            urwid.connect_signal(button, 'click', self.check_answer, answer, None, user_args=[answer, q])
+            body.append(urwid.AttrMap(button, None, focus_map='reversed'))
+        main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
-def handle_multiple_choice(q):
-    answer_dict = {}
-    print(q['question'])
-    #TODO: randomize the answer output
-    winning_answer = ''
-    for index,answer in enumerate(q['answer'],1):
-        answer_dict[index] = answer
-        if answer[1]:
-            winning_answer = index
-        print(f'    {index}. {answer[0]}')
-    your_answer = 0
-    while not your_answer:
-        your_answer = int(input('What is your choice? >> '))
-        if your_answer > len(q['answer']) or your_answer < 0:
-            print("That is not a valid choice")
-            your_answer = 0
-    if winning_answer == your_answer:
-        print("======CORRECT\n")
-        return (True, q['question'])
-    else:
-        print("=======OOPS\n")
-        return (False, q['question'])
 
-def handle_flashcard(q):
-    print(q['question'])
-    print('\n\nPress return to reveal answer.\n')
-    your_input = input('>> ')
-    print(f"    {q['answer'][0][0]}")
-    assess = input('Mark Correct? >> ').lower()
-    if assess == '' or assess == 'y':
-        print("===========CORRECT\n")
-        return (True, q['question'])
-    else:
-        print("===========OOPS\t")
-        return (False, q['question'])
+    def handle_flashcard(self, q):
+        """ Depricated. Please fix me soon """
+        print(f"\n{q['question_text']}")
+        your_input = input('\nPress any key to reveal answer. >>\n')
+        print(f"{q['answers'][0][1]}")
+        assess = input('Mark Correct? >> ').lower()
+        if assess == '' or assess == 'y':
+            print("\n=========CORRECT\n")
+            return (True, q)
+        else:
+            print("\n=========OOPS\n")
+            return (False, q)
 
-thequiz = run_quiz()
-print(thequiz)
-ask_questions(thequiz)
+    def run_quiz(self, button, choice):
+        questions = master_quiz[choice]['questions'][:]
+        ask_question()
+
+def menu(title, choices, action):
+    body = [urwid.Text(title), urwid.Divider()]
+    for c in choices:
+        button = urwid.Button(c)
+        urwid.connect_signal(button, 'click', action, c)
+        body.append(urwid.AttrMap(button, None, focus_map='reversed'))
+    return urwid.ListBox(urwid.SimpleFocusListWalker(body))
+
+def exit_program():
+    raise urwid.ExitMainLoop()
+
+def create_quiz(button, choice):
+    global master_quiz
+    master_quiz = Quiz(choice, all_quizzes[choice]['questions'])
+
+# to be implemented someday. Would be nice to have historical data here
+# master_quiz = shelve.open('quiz')
+
+all_quizzes = digest_quiz("./quizzes/sample.txt")
+quiz_menu = menu('Select your quiz', all_quizzes.keys(), create_quiz)
+master_quiz = ''
+main = urwid.Padding(quiz_menu, left=2, right=2)
+top = urwid.Overlay(main, urwid.SolidFill(u'\N{MEDIUM SHADE}'),
+    align='center', width=('relative', 60),
+    valign='middle', height=('relative', 60),
+    min_width=20, min_height=9)
+urwid.MainLoop(top, palette=palette).run()
+
 
