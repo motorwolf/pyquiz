@@ -3,13 +3,14 @@ import time, random
 import urwid
 
 
-# I am not using this yet
+# I am not using all of these elements yet
 palette = [
     ('titlebar', 'dark blue', ''),
     ('header', 'white,bold', ''),
-    ('correct ', 'dark green,bold', ''),
-    ('wrong', 'dark red,bold', ''),
+    ('correct', 'dark green,bold', ''),
+    ('wrong', 'dark red,bold', 'black'),
     ('reversed', 'standout', ''),
+    ('flashcard', 'black,bold', 'white')
     ]
 
 
@@ -64,30 +65,31 @@ class Quiz:
         self.title = title
         self.current_screen = urwid.Filler(urwid.Text(self.title))
         main.original_widget = self.current_screen
-        self.handle_multiple_choice(questions.pop(0))
+        self.ask_question()
 
     def check_answer(self, button, choice, answer, question):
         # I'm not sure why these args are this way.
         correct, your_answer = question
         header_text = "You selected: " + your_answer
         if correct:
-            result = "CORRECT"
-            self.question_results['correct'] = choice
+            result = urwid.AttrMap(urwid.Text("CORRECT"), 'correct')
+            self.question_results['correct'].append(choice)
         else:
-            result = "WRONG"
-            self.question_results['incorrect'] = choice
+            result = urwid.AttrMap(urwid.Text("WRONG"), 'wrong')
+            self.question_results['incorrect'].append(choice)
         ok_button = urwid.Button('OK')
         urwid.connect_signal(ok_button, 'click', self.ask_question)
-        self.current_screen = main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(header_text), urwid.Text(result),
-            urwid.AttrMap(ok_button, None, focus_map='reversed')]))
-        # how can we keep them on this 'page' until we confirm?
+        self.current_screen = main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(header_text),result,
+            style_button(ok_button)]))
 
-    def ask_question(self, button):
+    def ask_question(self, button=None):
         """ Determines whether there are questions left and if so, asks them, removing them from the unasked questions in turn, and determines whether the question is multiple choice or not """
         if self.questions:
-            self.handle_multiple_choice(self.questions.pop(0))
+            question = self.questions.pop(0)
+            asker = self.handle_multiple_choice if len(question['answers']) > 1 else self.show_flashcard
+            asker(question)
         else:
-            exit_program()
+            self.end_quiz()
 
     def handle_multiple_choice(self, q):
         body = [urwid.Text(q['question_text']), urwid.Divider()]
@@ -100,22 +102,45 @@ class Quiz:
         main.original_widget = urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
 
-    def handle_flashcard(self, q):
-        """ Depricated. Please fix me soon """
-        print(f"\n{q['question_text']}")
-        your_input = input('\nPress any key to reveal answer. >>\n')
-        print(f"{q['answers'][0][1]}")
-        assess = input('Mark Correct? >> ').lower()
-        if assess == '' or assess == 'y':
-            print("\n=========CORRECT\n")
-            return (True, q)
-        else:
-            print("\n=========OOPS\n")
-            return (False, q)
+    def show_flashcard(self, q):
+        body = [style_flashcard(q['question_text']), urwid.Divider(top=2)]
+        reveal_button = urwid.Button('REVEAL ANSWER')
+        urwid.connect_signal(reveal_button, 'click', self.reveal_flashcard, q)
+        body.append(style_button(reveal_button))
+        main.original_widget = urwid.Filler(urwid.Pile(body))
 
-    def run_quiz(self, button, choice):
-        questions = master_quiz[choice]['questions'][:]
-        ask_question()
+    def reveal_flashcard(self, button, q):
+        def mark_question(button, result):
+            self.question_results[result].append(q)
+            self.ask_question()
+        body = [style_flashcard(q['answers'][0][1]), urwid.Divider(top=2)]
+        correct_button = urwid.Button('MARK CORRECT')
+        wrong_button = urwid.Button('MARK WRONG')
+        urwid.connect_signal(correct_button, 'click', mark_question, 'correct')
+        urwid.connect_signal(wrong_button, 'click', mark_question, 'incorrect')
+        body.extend([style_button(correct_button), style_button(wrong_button)])
+        main.original_widget = urwid.Filler(urwid.Pile(body))
+    
+    def end_quiz(self):
+        num_correct = len(self.question_results['correct'])
+        num_incorrect = len(self.question_results['incorrect'])
+        total_questions = num_correct + num_incorrect
+        percent = 0 if num_correct == 0 else round(num_correct / total_questions, 2) * 100
+        body = [urwid.Text(f'You got {num_correct} out of {total_questions} correct.'), urwid.Text(f'You scored {percent}%.')]
+        # rerun_button = urwid.Button('RERUN WRONG ANSWERS')
+        exit_button = urwid.Button('EXIT')
+        urwid.connect_signal(exit_button, 'click', exit_program)
+        body.append(style_button(exit_button))
+        main.original_widget = urwid.Filler(urwid.Pile(body))
+
+
+
+def style_button(button, style=None):
+    return urwid.AttrMap(button, style, focus_map='reversed')
+
+def style_flashcard(text):
+    card = [urwid.Divider(), urwid.Text(text), urwid.Divider()]
+    return urwid.AttrMap(urwid.Padding(urwid.Pile(card), align='center', width=('relative',60)), 'flashcard')
 
 def menu(title, choices, action):
     body = [urwid.Text(title), urwid.Divider()]
@@ -125,12 +150,13 @@ def menu(title, choices, action):
         body.append(urwid.AttrMap(button, None, focus_map='reversed'))
     return urwid.ListBox(urwid.SimpleFocusListWalker(body))
 
-def exit_program():
+def exit_program(button=None):
     raise urwid.ExitMainLoop()
 
 def create_quiz(button, choice):
     global master_quiz
     master_quiz = Quiz(choice, all_quizzes[choice]['questions'])
+
 
 # to be implemented someday. Would be nice to have historical data here
 # master_quiz = shelve.open('quiz')
@@ -143,6 +169,13 @@ top = urwid.Overlay(main, urwid.SolidFill(u'\N{MEDIUM SHADE}'),
     align='center', width=('relative', 60),
     valign='middle', height=('relative', 60),
     min_width=20, min_height=9)
+
+### It's difficult to debug urwid sometimes; here's a handy box to send your debug output to.
+# debug_box = urwid.Text('Debugger')
+# debugger = urwid.Frame(main, header=debug_box)
+# top = debugger
+
+
 urwid.MainLoop(top, palette=palette).run()
 
 
