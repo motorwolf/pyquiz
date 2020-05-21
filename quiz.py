@@ -71,16 +71,22 @@ class Quiz:
         # I'm not sure why these args are this way.
         correct, your_answer = question
         header_text = "You selected: " + your_answer
+        body = [urwid.Text(header_text)]
         if correct:
             result = urwid.AttrMap(urwid.Text("CORRECT"), 'correct')
             self.question_results['correct'].append(choice)
+            body.append(result)
         else:
             result = urwid.AttrMap(urwid.Text("WRONG"), 'wrong')
             self.question_results['incorrect'].append(choice)
+            body.append(result)
+            for answer in choice['answers']:
+                if answer[0]:
+                    body.extend([urwid.Text('The correct answer was:'),urwid.AttrMap(urwid.Text(answer[1]),'correct')])
         ok_button = urwid.Button('OK')
         urwid.connect_signal(ok_button, 'click', self.ask_question)
-        self.current_screen = main.original_widget = urwid.Filler(urwid.Pile([urwid.Text(header_text),result,
-            style_button(ok_button)]))
+        body.append(style_button(ok_button))
+        self.current_screen = main.original_widget = urwid.Filler(urwid.Pile(body))
 
     def ask_question(self, button=None):
         """ Determines whether there are questions left and if so, asks them, removing them from the unasked questions in turn, and determines whether the question is multiple choice or not """
@@ -127,11 +133,20 @@ class Quiz:
         total_questions = num_correct + num_incorrect
         percent = 0 if num_correct == 0 else round(num_correct / total_questions, 2) * 100
         body = [urwid.Text(f'You got {num_correct} out of {total_questions} correct.'), urwid.Text(f'You scored {percent}%.')]
-        # rerun_button = urwid.Button('RERUN WRONG ANSWERS')
+        rerun_button = urwid.Button('RERUN WRONG ANSWERS')
         exit_button = urwid.Button('EXIT')
         urwid.connect_signal(exit_button, 'click', exit_program)
-        body.append(style_button(exit_button))
+        urwid.connect_signal(rerun_button, 'click', self.reset_quiz)
+        body.extend([style_button(exit_button), style_button(rerun_button)])
         main.original_widget = urwid.Filler(urwid.Pile(body))
+
+    def reset_quiz(self, button):
+        self.questions = self.question_results['incorrect'][:]
+        self.question_results = {
+            'correct': [],
+            'incorrect': [],
+        }
+        self.ask_question()
 
 
 
@@ -159,7 +174,7 @@ def create_quiz(button, choice):
 
 
 # to be implemented someday. Would be nice to have historical data here
-# master_quiz = shelve.open('quiz')
+master_quiz = shelve.open('quiz')
 
 all_quizzes = digest_quiz("./quizzes/sample.txt")
 quiz_menu = menu('Select your quiz', all_quizzes.keys(), create_quiz)
