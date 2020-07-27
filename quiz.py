@@ -62,6 +62,7 @@ class Quiz:
             'incorrect': [],
             }
         self.questions = questions[:]
+        random.shuffle(self.questions)
         self.title = title
         self.current_screen = urwid.Filler(urwid.Text(self.title))
         main.original_widget = self.current_screen
